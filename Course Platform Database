@@ -1,0 +1,63 @@
+-- Keyspace creation and activation
+CREATE KEYSPACE tokio 
+WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+USE tokio;
+
+-- Creation of member and course tables
+CREATE TABLE membro (
+    cartao_de_cidadao text,
+    data_de_nascimento date,
+    email text,
+    nome text,
+    apelidos text,
+    tipo text STATIC,
+    PRIMARY KEY (cartao_de_cidadao, data_de_nascimento)
+);
+CREATE TABLE cursos (
+    nome text,
+    data_de_publicacao timestamp,
+    professor map<text, text>,
+    categoria text,
+    duracao int,
+    PRIMARY KEY (nome, data_de_publicacao)
+);
+
+-- Creation of member and course tables and adding descriptive comment to the courses table metadata
+ALTER TABLE membro ADD interesses list<text>;
+ALTER TABLE cursos WITH comment = 'Tabela que armazena os cursos oferecidos pela plataforma Tokio';
+
+-- Test data entry (4 members and 4 courses)
+INSERT INTO membro (cartao_de_cidadao, data_de_nascimento, nome, apelidos, email, tipo, interesses) 
+VALUES ('111', '1990-05-15', 'Leonardo', 'Silva', 'leo@email.com', 'Premium', ['Cassandra', 'Docker']);
+INSERT INTO membro (cartao_de_cidadao, data_de_nascimento, nome, apelidos, email, tipo, interesses) 
+VALUES ('222', '1995-08-20', 'Maria', 'Santos', 'maria@email.com', 'Standard', ['Java', 'Spring']);
+INSERT INTO membro (cartao_de_cidadao, data_de_nascimento, nome, apelidos, email, tipo, interesses) 
+VALUES ('333', '1988-12-01', 'Pedro', 'Costa', 'pedro@email.com', 'Premium', ['Python', 'AI']);
+INSERT INTO membro (cartao_de_cidadao, data_de_nascimento, nome, apelidos, email, tipo, interesses) 
+VALUES ('444', '2001-03-10', 'Ana', 'Oliveira', 'ana@email.com', 'Standard', ['Linux', 'SQL']);
+
+INSERT INTO cursos (nome, data_de_publicacao, categoria, duracao, professor) 
+VALUES ('Curso de Cassandra', '2026-01-10 10:00:00', 'Bases de Dados', 40, {'nome': 'Prof. Carlos', 'email': 'carlos@tokio.com'});
+INSERT INTO cursos (nome, data_de_publicacao, categoria, duracao, professor) 
+VALUES ('Curso de Docker', '2026-02-15 14:30:00', 'DevOps', 25, {'nome': 'Prof. Rui', 'email': 'rui@tokio.com'});
+INSERT INTO cursos (nome, data_de_publicacao, categoria, duracao, professor) 
+VALUES ('Curso de Java', '2026-03-01 09:00:00', 'Programacao', 60, {'nome': 'Prof. Carlos', 'email': 'carlos@tokio.com'});
+INSERT INTO cursos (nome, data_de_publicacao, categoria, duracao, professor) 
+VALUES ('Curso de Python', '2026-04-20 16:00:00', 'Programacao', 45, {'nome': 'Prof. Rita', 'email': 'rita@tokio.com'});
+
+-- Course query by name (Partition Key)
+SELECT * FROM cursos WHERE nome = 'Curso de Cassandra';
+
+-- Query courses by category (Requires Secondary Index)
+-- Creation of mandatory index for columns outside the Primary Key
+CREATE INDEX ON cursos (categoria);
+SELECT * FROM cursos WHERE categoria = 'Programacao';
+
+-- Modify a specific member's email
+UPDATE membro SET email = 'leonardo.novo@email.com' 
+WHERE cartao_de_cidadao = '111' AND data_de_nascimento = '1990-05-15';
+
+-- Delete a record from the membership table
+DELETE FROM membro WHERE cartao_de_cidadao = '444' AND data_de_nascimento = '2001-03-10';
+
+DESCRIBE KEYSPACE tokio;
